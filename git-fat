@@ -259,7 +259,15 @@ class GitFat(object):
                     os.rename(tmpname, objfile)
                     self.verbose('git-fat filter-clean: caching to %s' % objfile)
                 cached = True
-                outstreamclean.write(self.encode(digest, bytes))
+                # Only write hash if the original file is not 0 length. If it
+                # is 0 length, just leave a 0 length file. This works around
+                # an apparent git problem where it thinks the working tree is
+                # dirty if the smudge filter generates a 0 length file.
+                if bytes != 0:
+                    outstreamclean.write(self.encode(digest, bytes))
+                else:
+                    outstreamclean.flush()
+                    self.verbose('git-fat filter-clean: not modifying 0 length file')
         finally:
             if not cached:
                 os.remove(tmpname)
